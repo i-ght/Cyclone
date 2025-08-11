@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head><title>Slow Twisting Curved Grid Lines</title></head>
+<body style="margin:0; background:#000;">
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let w, h;
+
+function resize(){
+  w = canvas.width = window.innerWidth;
+  h = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+const spacing = 40;
+let t = 0;
+const segments = 200;
+
+function twistCurve(x, y, cx, cy, time, maxStrength=0.1) {
+  let dx = x - cx;
+  let dy = y - cy;
+  let dist = Math.sqrt(dx*dx + dy*dy);
+
+  // Normalize distance to [0,1] range (max distance is diagonal of canvas)
+  let maxDist = Math.sqrt(cx*cx + cy*cy);
+  let normDist = dist / maxDist;
+
+  let angle = Math.atan2(dy, dx);
+
+  // Twist proportional to normalized distance and time
+  let twistAngle = normDist * maxStrength * time;
+
+  let newAngle = angle + twistAngle;
+  let radius = dist;
+
+  return {
+    x: cx + radius * Math.cos(newAngle),
+    y: cy + radius * Math.sin(newAngle)
+  };
+}
+
+
+function draw(){
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1;
+
+  const cx = w/2;
+  const cy = h/2;
+
+  for(let gx = 0; gx <= w; gx += spacing){
+    ctx.beginPath();
+    for(let i = 0; i <= segments; i++){
+      let y = i * h / segments;
+      let p = twistCurve(gx, y, cx, cy, t);
+      if(i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+  }
+
+  for(let gy = 0; gy <= h; gy += spacing){
+    ctx.beginPath();
+    for(let i = 0; i <= segments; i++){
+      let x = i * w / segments;
+      let p = twistCurve(x, gy, cx, cy, t);
+      if(i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+  }
+}
+
+function animate(){
+  t++;
+  draw();
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>
