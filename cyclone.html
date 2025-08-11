@@ -1,81 +1,313 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" >
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Escher-Inspired Grid Animation</title>
+  <meta charset="UTF-8" />
+  <title>Pendulum Wave with Responsive Controls & Speed Multiplier</title>
   <style>
-    body, html { margin: 0; padding: 0; overflow: hidden; }
-    canvas { display: block; background: #fff; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #waveCanvas {
+      flex: 1 1 auto;
+      display: block;
+      background: #111;
+      border: 1px solid #333;
+      width: 100vw;
+      max-height: 100vh;
+    }
+
+    #controls {
+      flex: 0 0 auto;
+      width: 100%;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 12px 15px;
+      background: #222;
+      box-shadow: 0 0 15px #0af;
+      box-sizing: border-box;
+      overflow-y: auto;
+      max-height: 240px;
+    }
+
+    #controls label {
+      display: block;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    #controls input[type=range],
+    #controls input[type=number] {
+      width: 100%;
+      margin-top: 4px;
+      background: #333;
+      border-radius: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 8px;
+    }
+
+    #controls input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #0af;
+      cursor: pointer;
+      border-radius: 50%;
+      border: none;
+      margin-top: -4px;
+    }
+
+    #controls input[type=range]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: #0af;
+      cursor: pointer;
+      border-radius: 50%;
+      border: none;
+    }
+
+    /* Smaller margin for first label */
+    #controls label:first-child {
+      margin-top: 0;
+    }
   </style>
 </head>
 <body>
-<canvas id="canvas"></canvas>
+
+<canvas id="waveCanvas"></canvas>
+
+<div id="controls">
+  <label>Number of Circles/Ovals: <span id="numCirclesVal">10</span>
+    <input type="range" id="numCircles" min="3" max="20" value="10" step="1">
+  </label>
+  <label>Oval Vertical Ratio (height/width): <span id="ovalRatioVal">0.35</span>
+    <input type="range" id="ovalRatio" min="0.1" max="1" step="0.01" value="0.35">
+  </label>
+  <label>Gap between Circles and Ovals (px): <span id="gapVal">15</span>
+    <input type="range" id="gap" min="5" max="50" step="1" value="15">
+  </label>
+  <label>Gap between Ovals (px): <span id="gapOvalsVal">8</span>
+    <input type="range" id="gapOvals" min="2" max="30" step="1" value="8">
+  </label>
+  <label>Sync Period (seconds): <span id="syncPeriodVal">6</span>
+    <input type="range" id="syncPeriod" min="2" max="20" step="0.1" value="6">
+  </label>
+  <label>Modulation Depth (slowdown intensity): <span id="modDepthVal">0.7</span>
+    <input type="range" id="modDepth" min="0" max="1" step="0.01" value="0.7">
+  </label>
+  <label>Speed Multiplier: <span id="speedMultiplierVal">1.0</span>
+    <input type="range" id="speedMultiplier" min="0.1" max="5" step="0.01" value="1.0">
+  </label>
+  <label>Dot Size (pixels): <span id="dotSizeVal">4</span>
+    <input type="range" id="dotSize" min="1" max="20" step="1" value="4">
+  </label>
+  <label>Circle Scale Factor: <span id="circleScaleVal">0.6</span>
+    <input type="range" id="circleScale" min="0.1" max="1" step="0.01" value="0.6">
+  </label>
+</div>
+
 <script>
-  const canvas = document.getElementById('canvas');
+(() => {
+  const canvas = document.getElementById('waveCanvas');
   const ctx = canvas.getContext('2d');
-  let w, h, spacing = 40, t = 0;
+
+  const controls = {
+    numCircles: document.getElementById('numCircles'),
+    ovalRatio: document.getElementById('ovalRatio'),
+    gap: document.getElementById('gap'),
+    gapOvals: document.getElementById('gapOvals'),
+    syncPeriod: document.getElementById('syncPeriod'),
+    modDepth: document.getElementById('modDepth'),
+    speedMultiplier: document.getElementById('speedMultiplier'),
+    dotSize: document.getElementById('dotSize'),
+    circleScale: document.getElementById('circleScale'),
+  };
+
+  const labels = {
+    numCircles: document.getElementById('numCirclesVal'),
+    ovalRatio: document.getElementById('ovalRatioVal'),
+    gap: document.getElementById('gapVal'),
+    gapOvals: document.getElementById('gapOvalsVal'),
+    syncPeriod: document.getElementById('syncPeriodVal'),
+    modDepth: document.getElementById('modDepthVal'),
+    speedMultiplier: document.getElementById('speedMultiplierVal'),
+    dotSize: document.getElementById('dotSizeVal'),
+    circleScale: document.getElementById('circleScaleVal'),
+  };
+
+  for (let key in controls) {
+    controls[key].addEventListener('input', () => {
+      labels[key].textContent = controls[key].value;
+    });
+  }
 
   function resize() {
-    w = canvas.width = window.innerWidth;
-    h = canvas.height = window.innerHeight;
+    const controlsHeight = document.getElementById('controls').offsetHeight;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight - controlsHeight;
   }
-  window.addEventListener('resize', resize);
   resize();
+  window.addEventListener('resize', resize);
 
-  function twist(x, y, cx, cy, time, maxStrength = 0.01) {
-    let dx = x - cx;
-    let dy = y - cy;
-    let dist = Math.sqrt(dx * dx + dy * dy);
-    let maxDist = Math.sqrt(cx * cx + cy * cy);
-    let normDist = dist / maxDist;
-    let angle = Math.atan2(dy, dx);
-    let twistAngle = (1 - normDist) * maxStrength * time;
-    let newAngle = angle + twistAngle;
-    let radius = dist;
-    return {
-      x: cx + radius * Math.cos(newAngle),
-      y: cy + radius * Math.sin(newAngle)
-    };
+  const centerX = () => canvas.width / 2;
+  const centerY = () => canvas.height / 2;
+
+  function drawCircle(r) {
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 2;
+    ctx.arc(centerX(), centerY(), r, 0, Math.PI * 2);
+    ctx.stroke();
   }
 
-  function draw() {
-    ctx.clearRect(0, 0, w, h);
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1;
-
-    const cx = w / 2;
-    const cy = h / 2;
-
-    for (let gx = 0; gx <= w; gx += spacing) {
-      ctx.beginPath();
-      for (let i = 0; i <= h / spacing; i++) {
-        let y = i * spacing;
-        let p = twist(gx, y, cx, cy, t, 0.004);
-        if (i === 0) ctx.moveTo(p.x, p.y);
-        else ctx.lineTo(p.x, p.y);
-      }
-      ctx.stroke();
-    }
-
-    for (let gy = 0; gy <= h; gy += spacing) {
-      ctx.beginPath();
-      for (let i = 0; i <= w / spacing; i++) {
-        let x = i * spacing;
-        let p = twist(x, gy, cx, cy, t, 0.004);
-        if (i === 0) ctx.moveTo(p.x, p.y);
-        else ctx.lineTo(p.x, p.y);
-      }
-      ctx.stroke();
-    }
+  function drawDot(x, y, color, radius = 3) {
+    ctx.beginPath();
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 15;
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
   }
 
-  function animate() {
-    t += 1;
-    draw();
+  function drawOval(cx, cy, rx, ry, rotation = 0, color, lineWidth = 2, alpha = 0.15) {
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, rotation, 0, 2 * Math.PI);
+    ctx.strokeStyle = `rgba(${color.r},${color.g},${color.b},${alpha})`;
+    ctx.lineWidth = lineWidth;
+    ctx.stroke();
+  }
+
+  let lastTime = null;
+  let elapsed = 0;
+  let modulatedElapsed = 0;
+
+  function animate(timestamp) {
+    if (!lastTime) lastTime = timestamp;
+    const delta = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+
+    elapsed += delta;
+
+    const numCircles = Math.floor(+controls.numCircles.value);
+    const ovalRadiusYRatio = +controls.ovalRatio.value;
+    const gap = +controls.gap.value;
+    const gapOvals = +controls.gapOvals.value;
+    const syncPeriod = +controls.syncPeriod.value;
+    const modulationDepth = +controls.modDepth.value;
+    const speedMultiplier = +controls.speedMultiplier.value;
+    const dotRadius = +controls.dotSize.value;
+    const circleScaleFactor = +controls.circleScale.value;
+
+    // Update labels in case changed programmatically
+    for (let key in controls) {
+      labels[key].textContent = controls[key].value;
+    }
+
+    // Modulate elapsed time for pendulum slow/fast sync effect with speed multiplier
+    const speedFactor = 1 - modulationDepth * Math.cos((2 * Math.PI / syncPeriod) * elapsed) ** 2;
+    modulatedElapsed += speedFactor * delta * speedMultiplier;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const canvasMin = Math.min(canvas.width, canvas.height);
+
+    // Base max radius for circles inside ovals
+    const baseMaxRadius = (canvasMin / 6) * circleScaleFactor;
+
+    // Smallest oval horizontal radius based on canvas size and gap
+    const startOvalRadiusX = canvasMin * 0.4;
+
+    // Max horizontal radius to fit inside canvas width minus margin
+    const maxHorizontal = canvas.width / 2 - 10;
+
+    // Calculate max possible radius step so that all ovals fit
+    const rx0 = Math.min(startOvalRadiusX, (maxHorizontal - gapOvals * (numCircles - 1)) / numCircles);
+    const step = gapOvals + ((maxHorizontal - rx0 * numCircles) / (numCircles - 1) || 0);
+
+    // Ensure circles fit inside smallest oval with gap
+    const maxCircleRadius = Math.min(baseMaxRadius, rx0 - gap);
+    const circleSpacing = maxCircleRadius / numCircles;
+
+    // Frequencies for circles (harmonics) adjusted by speedMultiplier
+    const baseOmegaCircle = (Math.PI / 3) * speedMultiplier;
+    const frequencies = [];
+    for (let i = 1; i <= numCircles; i++) {
+      frequencies.push(baseOmegaCircle * i);
+    }
+
+    // Draw concentric circles and their dots
+    for (let i = 0; i < numCircles; i++) {
+      const radius = circleSpacing * (i + 1);
+      drawCircle(radius);
+
+      const angle = frequencies[i] * modulatedElapsed;
+      const color = `rgba(100,220,255)`;
+
+      drawDot(centerX() + radius * Math.cos(angle), centerY() + radius * Math.sin(angle), color, dotRadius);
+      drawDot(centerX() + radius * Math.cos(angle + Math.PI), centerY() + radius * Math.sin(angle + Math.PI), color, dotRadius);
+    }
+
+    // Draw horizontal and vertical ovals and their dots
+    const ovalCount = numCircles;
+    const maxOvalRadiusX = rx0 + step * (ovalCount - 1);
+
+    // Base angular frequency for oval dots adjusted by speedMultiplier
+    const baseOmegaOval = (2 * Math.PI / syncPeriod) * speedMultiplier;
+
+    for (let i = 0; i < ovalCount; i++) {
+      const rx = rx0 + step * i;
+      let ry = rx * ovalRadiusYRatio;
+
+      // Clamp vertical oval radius to fit vertically inside canvas
+      const maxVertical = canvas.height / 2 - 10;
+      if (ry > maxVertical) {
+        const scale = maxVertical / ry;
+        ry *= scale;
+      }
+
+      // Draw horizontal ovals (rotation = 0)
+      drawOval(centerX(), centerY(), rx, ry, 0, { r: 100, g: 220, b: 255 }, 2, 0.15);
+
+      const freqMultiplier = i + 1;
+      const angle = baseOmegaOval * freqMultiplier * modulatedElapsed;
+
+      drawDot(centerX() + rx * Math.cos(angle), centerY() + ry * Math.sin(angle), 'rgba(255,100,150,0.9)', dotRadius + 1);
+      drawDot(centerX() + rx * Math.cos(angle + Math.PI), centerY() + ry * Math.sin(angle + Math.PI), 'rgba(255,100,150,0.9)', dotRadius + 1);
+
+      // Draw vertical ovals (rotation = 90 degrees)
+      drawOval(centerX(), centerY(), rx, ry, Math.PI / 2, { r: 255, g: 180, b: 100 }, 2, 0.15);
+
+      // Parametric position for vertical oval dots (rotated ellipse)
+      const cx = centerX();
+      const cy = centerY();
+
+      const x1 = cx - ry * Math.sin(angle);
+      const y1 = cy + rx * Math.cos(angle);
+
+      const x2 = cx - ry * Math.sin(angle + Math.PI);
+      const y2 = cy + rx * Math.cos(angle + Math.PI);
+
+      drawDot(x1, y1, 'rgba(255,180,100,0.9)', dotRadius + 1);
+      drawDot(x2, y2, 'rgba(255,180,100,0.9)', dotRadius + 1);
+    }
+
     requestAnimationFrame(animate);
   }
-  animate();
+
+  requestAnimationFrame(animate);
+})();
 </script>
+
 </body>
 </html>

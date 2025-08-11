@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Traveling Dots Animation</title>
+<style>
+  body {
+    margin: 0; background: black;
+    display: flex; justify-content: center; align-items: center;
+    height: 100vh;
+  }
+  canvas {
+    background: black;
+  }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+<script>
+(() => {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+
+  // Resize canvas to window
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Configuration
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+
+  // Counts
+  const count = 10;
+
+  // Radii and sizes
+  const circleRadius = 15; // radius of center circles
+  const ovalRadiusX = 100; // horizontal oval radius X
+  const ovalRadiusY = 40;  // horizontal oval radius Y
+  const ovalRadiusY_vertical = 100; // vertical oval radius Y
+  const ovalRadiusX_vertical = 40;  // vertical oval radius X
+
+  // Spacing between center circles (horizontal line)
+  const spacing = 40;
+
+  // Speed of traveling dots (radians per second)
+  const speed = 3;
+
+  // Phase offset for pendulum wave effect (dots desync & resync)
+  // We'll use a slow oscillation on phase difference over time
+  const phaseOscillationFreq = 0.15; // oscillations per second
+
+  // Timestamp for animation
+  let lastTime = 0;
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Get current time in seconds
+    const now = performance.now() / 1000;
+    const dt = now - lastTime;
+    lastTime = now;
+
+    // Calculate current phase offset oscillation
+    // It oscillates between 0 and 2*PI/count for smooth pendulum wave effect
+    const phaseOsc = (Math.sin(now * Math.PI * 2 * phaseOscillationFreq) + 1) / 2; // 0 to 1
+    const maxPhaseShift = (2 * Math.PI) / count;
+
+    // Draw center horizontal circles and traveling dots
+    for (let i = 0; i < count; i++) {
+      // Circle center
+      const cx = centerX + (i - (count - 1) / 2) * spacing;
+      const cy = centerY;
+
+      // Draw static circle
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, circleRadius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Calculate dot position on circumference with phase shift
+      // Phase shifts oscillate smoothly for pendulum effect
+      const phaseShift = phaseOsc * maxPhaseShift * i;
+      // Angle advances with time and phase shift
+      const angle = (now * speed + phaseShift) % (2 * Math.PI);
+
+      // Dot position on circle circumference
+      const dotX = cx + circleRadius * Math.cos(angle);
+      const dotY = cy + circleRadius * Math.sin(angle);
+
+      // Draw traveling dot
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Draw horizontal ovals and traveling dots
+    for (let i = 0; i < count; i++) {
+      // Oval center: arrange vertically spaced around centerY (above and below center)
+      // We'll place all ovals centered vertically on centerY, but arranged horizontally like the circles
+      // To separate from center circles, shift vertically by 120px above centerY
+      const cx = centerX + (i - (count - 1) / 2) * spacing;
+      const cy = centerY - 120;
+
+      // Draw horizontal oval (ellipse)
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 1.0;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, ovalRadiusX, ovalRadiusY, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Calculate dot position on oval perimeter
+      // Parametric ellipse: x = cx + a*cos(t), y = cy + b*sin(t)
+      const phaseShift = phaseOsc * maxPhaseShift * i;
+      const angle = (now * speed + phaseShift) % (2 * Math.PI);
+
+      const dotX = cx + ovalRadiusX * Math.cos(angle);
+      const dotY = cy + ovalRadiusY * Math.sin(angle);
+
+      // Draw traveling dot
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Draw vertical ovals and traveling dots
+    for (let i = 0; i < count; i++) {
+      // Oval center: arrange vertically spaced around centerY (below centerY)
+      // Arrange horizontally same as above for symmetry, but vertically lower
+      const cx = centerX + (i - (count - 1) / 2) * spacing;
+      const cy = centerY + 120;
+
+      // Draw vertical oval by rotating ellipse 90 degrees (PI/2)
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 1.0;
+      ctx.beginPath();
+      // rotate ellipse by PI/2 radians around center
+      ctx.ellipse(cx, cy, ovalRadiusX_vertical, ovalRadiusY_vertical, Math.PI / 2, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Calculate dot position on vertical oval perimeter
+      const phaseShift = phaseOsc * maxPhaseShift * i;
+      const angle = (now * speed + phaseShift) % (2 * Math.PI);
+
+      // For ellipse rotated by 90 deg:
+      // x = cx + a*sin(angle)
+      // y = cy + b*cos(angle)
+      const dotX = cx + ovalRadiusX_vertical * Math.sin(angle);
+      const dotY = cy + ovalRadiusY_vertical * Math.cos(angle);
+
+      // Draw traveling dot
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
