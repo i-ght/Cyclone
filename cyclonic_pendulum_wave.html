@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Pendulum Wave of the Seven Archons - Fixed Hue, Pulsing Opacity</title>
+<style>
+  body, html { margin: 0; overflow: hidden; background: #111; }
+  canvas { display: block; margin: auto; background: #111; }
+</style>
+</head>
+<body>
+<canvas id="waveCanvas"></canvas>
+<script>
+(() => {
+  const canvas = document.getElementById('waveCanvas');
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const centerX = () => canvas.width / 2;
+  const centerY = () => canvas.height / 2;
+
+  const numCircles = 7;
+  const maxRadius = Math.min(canvas.width, canvas.height) / 3;
+  const circleSpacing = maxRadius / numCircles;
+
+  const baseOmega = Math.PI / 3; // base angular speed
+
+  // Frequencies multiples 1..7
+  const frequencies = [];
+  for (let i = 1; i <= numCircles; i++) {
+    frequencies.push(baseOmega * i);
+  }
+
+  // Archon planet base colors as fixed rgb strings
+  const archonColors = [
+    '75,0,130',       // indigo (Saturn)
+    '65,105,225',     // royalblue (Jupiter)
+    '220,20,60',      // crimson (Mars)
+    '255,215,0',      // gold (Sun)
+    '60,179,113',     // mediumseagreen (Venus)
+    '192,192,192',    // silver (Mercury)
+    '176,196,222'     // lightsteelblue (Moon)
+  ];
+
+  function drawCircle(r) {
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 2;
+    ctx.arc(centerX(), centerY(), r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  function drawDot(r, angle, rgbString, alpha) {
+    const x = centerX() + r * Math.cos(angle);
+    const y = centerY() + r * Math.sin(angle);
+    ctx.beginPath();
+    ctx.fillStyle = `rgba(${rgbString},${alpha.toFixed(2)})`;
+    ctx.shadowColor = `rgba(${rgbString},${alpha.toFixed(2)})`;
+    ctx.shadowBlur = 20;
+    ctx.arc(x, y, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  let lastTime = null;
+  let elapsed = 0;
+
+  function animate(timestamp) {
+    if (!lastTime) lastTime = timestamp;
+    const delta = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+
+    elapsed += delta;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let i = 0; i < numCircles; i++) {
+      const radius = circleSpacing * (i + 1);
+      drawCircle(radius);
+
+      const angle = frequencies[i] * elapsed;
+
+      // Pulse alpha between 0.6 and 1.0
+      const alpha = 0.6 + 0.4 * Math.sin(elapsed * 3 + i);
+
+      drawDot(radius, angle, archonColors[i], alpha);
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
