@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Twisting Grid with Filled Center</title>
+<style>
+  body { margin: 0; overflow: hidden; background: black; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let centerX, centerY;
+const gridSpacing = 16; // your original spacing
+let time = 0;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  centerX = canvas.width / 2;
+  centerY = canvas.height / 2;
+}
+
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const twistAmount = Math.sin(time) * 16;
+
+  // Vertical lines
+  for (let x = -canvas.width; x < canvas.width * 2; x += gridSpacing) {
+    ctx.beginPath();
+    for (let y = -canvas.height; y < canvas.height * 2; y += gridSpacing) {
+      const dx = x - centerX;
+      const dy = y - centerY;
+      const r = Math.sqrt(dx*dx + dy*dy);
+      const theta = Math.atan2(dy, dx) + twistAmount * r * 0.002;
+
+      const sx = centerX + r * Math.cos(theta);
+      const sy = centerY + r * Math.sin(theta);
+
+      // Fill **only the central grid cells**
+      const isCenterX = Math.abs(dx) < gridSpacing/2;
+      if (isCenterX) {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(sx - gridSpacing/2, sy - gridSpacing/2, gridSpacing, gridSpacing);
+      } else {
+        if (y === -canvas.height) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      }
+    }
+    const hue = (x / canvas.width * 360 + time * 50) % 360;
+    ctx.strokeStyle = `hsl(${hue}, 80%, 60%)`;
+    ctx.stroke();
+  }
+
+  // Horizontal lines
+  for (let y = -canvas.height; y < canvas.height * 2; y += gridSpacing) {
+    ctx.beginPath();
+    for (let x = -canvas.width; x < canvas.width * 2; x += gridSpacing) {
+      const dx = x - centerX;
+      const dy = y - centerY;
+      const r = Math.sqrt(dx*dx + dy*dy);
+      const theta = Math.atan2(dy, dx) + twistAmount * r * 0.002;
+
+      const sx = centerX + r * Math.cos(theta);
+      const sy = centerY + r * Math.sin(theta);
+
+      // Fill **only the central grid cells**
+      const isCenterY = Math.abs(dy) < gridSpacing/2;
+      if (isCenterY) {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(sx - gridSpacing/2, sy - gridSpacing/2, gridSpacing, gridSpacing);
+      } else {
+        if (x === -canvas.width) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      }
+    }
+    const hue = (y / canvas.height * 360 + time * 50) % 360;
+    ctx.strokeStyle = `hsl(${hue}, 80%, 60%)`;
+    ctx.stroke();
+  }
+
+  time += 0.01;
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+</body>
+</html>

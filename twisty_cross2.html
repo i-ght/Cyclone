@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Twisting Grid with One-Cell Cross</title>
+<style>
+  body { margin: 0; overflow: hidden; background: black; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let centerX, centerY;
+const gridSpacing = 64; // each grid cell 64 pixels wide
+let time = 0;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  centerX = canvas.width / 2;
+  centerY = canvas.height / 2;
+}
+
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  const twistAmount = Math.sin(time) * 2;
+
+  for (let x = -canvas.width; x < canvas.width*2; x += gridSpacing) {
+    for (let y = -canvas.height; y < canvas.height*2; y += gridSpacing) {
+      const dx = x - centerX;
+      const dy = y - centerY;
+      const r = Math.sqrt(dx*dx + dy*dy);
+      const theta = Math.atan2(dy, dx) + twistAmount * r * 0.002;
+
+      const sx = centerX + r * Math.cos(theta);
+      const sy = centerY + r * Math.sin(theta);
+
+      // Only fill the central column or central row for the cross
+      const isCross = (Math.abs(dx) < gridSpacing/2) || (Math.abs(dy) < gridSpacing/2);
+
+      if (isCross) {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(sx - gridSpacing/2, sy - gridSpacing/2, gridSpacing, gridSpacing);
+      } else {
+        // Draw grid lines
+        ctx.beginPath();
+        ctx.moveTo(sx - gridSpacing/2, sy);
+        ctx.lineTo(sx + gridSpacing/2, sy);
+        ctx.moveTo(sx, sy - gridSpacing/2);
+        ctx.lineTo(sx, sy + gridSpacing/2);
+        const hue = (x + y)/10 + time*50;
+        ctx.strokeStyle = `hsl(${hue % 360}, 80%, 60%)`;
+        ctx.stroke();
+      }
+    }
+  }
+
+  time += 0.02;
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+</body>
+</html>
+ 
