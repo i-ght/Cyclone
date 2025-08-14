@@ -1,2 +1,8 @@
 https://i-ght.github.io/Cyclone/cyclone.html
 https://i-ght.github.io/Cyclone/codex.html
+https://i-ght.github.io/Cyclone/3d.html
+https://i-ght.github.io/Cyclone/cyclone_grid.html
+https://i-ght.github.io/Cyclone/multi_track_orbital_dot_animation_with_phase_shifted_motion.html
+https://i-ght.github.io/Cyclone/pendulum_grid.html
+https://i-ght.github.io/Cyclone/twisty_cross.html
+https://i-ght.github.io/Cyclone/twisty_cross2.html
